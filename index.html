@@ -1,0 +1,2399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Entropy Ash & MiniOS</title>
+<style>
+:root {
+  --bg-primary: #0a0a0a;
+  --bg-secondary: #1a0a0a;
+  --bg-tertiary: #2a0a0a;
+  --text-primary: #e0e0e0;
+  --text-secondary: #b00000;
+  --accent-blood: #8b0000;
+  --accent-fire: #ff4500;
+  --border-dark: #4a0a0a;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Courier New', monospace;
+  background: radial-gradient(circle at center, #1a0a0a 0%, var(--bg-primary) 100%);
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-y: auto;
+  position: relative;
+}
+body::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background-image: 
+    radial-gradient(circle at 20% 30%, rgba(139, 0, 0, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(255, 69, 0, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 40% 90%, rgba(139, 0, 0, 0.08) 0%, transparent 50%);
+  animation: bloodFlow 20s ease-in-out infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+@keyframes bloodFlow {
+  0%, 100% { transform: translateX(0) translateY(0) scale(1); opacity: 0.3; }
+  33% { transform: translateX(-20px) translateY(-10px) scale(1.05); opacity: 0.5; }
+  66% { transform: translateX(20px) translateY(10px) scale(0.95); opacity: 0.4; }
+}
+.container {
+  width: 100%;
+  max-width: 900px;
+  padding: 20px 10px;
+  position: relative;
+  z-index: 1;
+}
+h1 {
+  font-size: 2.5rem;
+  color: var(--accent-blood);
+  text-align: center;
+  margin-bottom: 20px;
+  text-shadow: 0 0 20px rgba(139, 0, 0, 0.8), 0 0 40px rgba(139, 0, 0, 0.4);
+  letter-spacing: 0.2em;
+  animation: titlePulse 2s ease-in-out infinite;
+}
+@keyframes titlePulse {
+  0% { text-shadow: 0 0 20px rgba(139, 0, 0, 0.8); }
+  50% { text-shadow: 0 0 30px rgba(139, 0, 0, 1), 0 0 50px rgba(139, 0, 0, 0.6); }
+  100% { text-shadow: 0 0 20px rgba(139, 0, 0, 0.8); }
+}
+input, textarea, button {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-dark);
+  color: var(--text-primary);
+  font-family: inherit;
+  transition: all 0.3s;
+  border-radius: 4px;
+  width: 100%;
+  padding: 8px 12px;
+  margin: 5px 0;
+  font-size: 0.9rem;
+}
+input:focus, textarea:focus {
+  outline: none;
+  border-color: var(--accent-blood);
+  box-shadow: 0 0 10px rgba(139, 0, 0, 0.5);
+}
+button {
+  background: var(--accent-blood);
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  position: relative;
+  overflow: hidden;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+}
+button:hover {
+  background: var(--accent-fire);
+  box-shadow: 0 0 15px rgba(255, 69, 0, 0.6);
+  transform: translateY(-1px);
+}
+button:active {
+  transform: scale(0.98);
+}
+button::after {
+  content: '';
+  position: absolute;
+  top: -50%; left: -50%;
+  width: 200%; height: 200%;
+  background: linear-gradient(rgba(255,0,0,0), rgba(255,0,0,0.2));
+  transform: rotate(30deg);
+  transition: all 0.5s;
+}
+button:hover::after {
+  transform: rotate(30deg) translateY(100%);
+}
+button:disabled {
+  background: #3a0a0a;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.room-container {
+  background: var(--bg-secondary);
+  border: 2px solid var(--accent-blood);
+  border-radius: 8px;
+  padding: 15px;
+  margin-top: 10px;
+  box-shadow: inset 0 0 20px rgba(139, 0, 0, 0.3);
+}
+.post {
+  padding: 10px;
+  margin: 8px 0;
+  background: rgba(139, 0, 0, 0.1);
+  border-left: 3px solid var(--accent-blood);
+  border-radius: 0 4px 4px 0;
+  animation: postAppear 0.5s ease-out;
+  position: relative;
+  transition: transform 0.2s;
+}
+.post:hover {
+  background: rgba(139, 0, 0, 0.15);
+  border-left-width: 5px;
+  transform: translateX(5px);
+}
+.post-author {
+  color: var(--accent-fire);
+  font-weight: bold;
+  font-size: 0.8em;
+  text-shadow: 0 0 5px rgba(255, 69, 0, 0.3);
+}
+.post-content {
+  margin: 6px 0;
+  line-height: 1.5;
+  word-wrap: break-word;
+  font-size: 0.9em;
+}
+.post-time {
+  color: #666;
+  font-size: 0.65em;
+  float: right;
+}
+.post-time::before {
+  content: '⏱ ';
+}
+.status {
+  text-align: center;
+  padding: 10px;
+  margin: 10px 0;
+  border-radius: 4px;
+  font-size: 0.85em;
+  font-weight: bold;
+  letter-spacing: 0.1em;
+}
+.status.connecting {
+  background: rgba(255, 165, 0, 0.2);
+  border: 1px solid var(--accent-fire);
+  color: var(--accent-fire);
+  animation: statusBlink 1.5s infinite;
+}
+@keyframes statusBlink {
+  50% { opacity: 0.5; }
+}
+.status.connected {
+  background: rgba(0, 255, 0, 0.1);
+  border: 1px solid #0f0;
+  color: #0f0;
+  text-shadow: 0 0 5px #0f0;
+}
+.status.offline {
+  background: rgba(139, 0, 0, 0.2);
+  border: 1px solid var(--accent-fire);
+  color: var(--accent-blood);
+}
+.admin-panel {
+  background: rgba(139, 0, 0, 0.2);
+  border: 2px solid var(--accent-fire);
+  border-radius: 8px;
+  padding: 15px;
+  margin: 15px 0;
+  box-shadow: 0 0 20px rgba(255, 69, 0, 0.4);
+}
+.admin-title {
+  color: var(--accent-fire);
+  font-size: 1em;
+  margin-bottom: 10px;
+  text-shadow: 0 0 10px rgba(255, 69, 0, 0.5);
+}
+.room-list-item {
+  padding: 8px;
+  margin: 5px 0;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-dark);
+  cursor: pointer;
+  transition: all 0.3s;
+  border-radius: 4px;
+  font-size: 0.85em;
+}
+.room-list-item:hover {
+  border-color: var(--accent-blood);
+  background: rgba(139, 0, 0, 0.2);
+  transform: translateX(5px);
+}
+.loading {
+  text-align: center;
+  padding: 15px;
+  color: #666;
+}
+.loading::after {
+  content: '';
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+  border: 2px solid var(--border-dark);
+  border-top: 2px solid var(--accent-blood);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.modal {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal-content {
+  background: var(--bg-secondary);
+  border: 3px solid var(--accent-blood);
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 0 30px rgba(139, 0, 0, 0.5);
+  position: relative;
+  overflow: hidden;
+  max-width: 90%;
+  max-height: 90%;
+  overflow-y: auto;
+}
+.status-indicator {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-left: 5px;
+}
+.status-indicator.online {
+  background: #0f0;
+  box-shadow: 0 0 5px #0f0;
+}
+.status-indicator.offline {
+  background: #f00;
+  box-shadow: 0 0 5px #f00;
+}
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--accent-blood);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-fire);
+}
+@media (max-width: 600px) {
+  h1 { font-size: 2rem; }
+  .container { padding: 15px 8px; }
+}
+@keyframes adminGlow {
+  0%, 100% { box-shadow: 0 0 10px rgba(255, 69, 0, 0.5); }
+  50% { box-shadow: 0 0 20px rgba(255, 69, 0, 1); }
+}
+#satanicPanel {
+  border: 2px solid var(--accent-blood);
+  padding: 15px;
+  margin-top: 15px;
+  background: rgba(139, 0, 0, 0.1);
+  animation: bloodPulse 3s ease-in-out infinite;
+}
+@keyframes bloodPulse {
+  0% { box-shadow: 0 0 5px rgba(139, 0, 0, 0.3); }
+  50% { box-shadow: 0 0 15px rgba(139, 0, 0, 0.6); }
+  100% { box-shadow: 0 0 5px rgba(139, 0, 0, 0.3); }
+}
+#satanicPanel h3 {
+  color: var(--accent-blood);
+  margin-bottom: 10px;
+  font-size: 1.1em;
+  text-shadow: 0 0 5px rgba(139, 0, 0, 0.5);
+}
+#announcementDisplay {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 10px;
+  margin-top: 10px;
+  border-left: 4px solid var(--accent-blood);
+  min-height: 40px;
+}
+#editPanel {
+  margin-top: 10px;
+}
+#announcementInput {
+  font-family: 'Courier New', monospace;
+  resize: vertical;
+  min-height: 60px;
+}
+#editBtn {
+  padding: 6px 12px;
+  font-size: 0.75em;
+}
+.system-toggle-btn {
+  position: fixed;
+  top: 15px;
+  right: 15px;
+  width: 35px;
+  height: 35px;
+  background: #ff0000;
+  border: none;
+  border-radius: 50%;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  z-index: 10000;
+  box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+}
+.system-toggle-btn:hover {
+  background: #ff3333;
+  transform: scale(1.1);
+}
+#taskbar { 
+  position: fixed; top: 0; left: 0; right: 0; height: 40px; 
+  background: #1a1a1a; border-bottom: 1px solid #333; 
+  display: flex; align-items: center; padding: 0 10px; z-index: 10000; gap: 10px;
+}
+.task-icon { 
+  width: 30px; height: 30px; background: #2a2a2a; border-radius: 6px; 
+  display: flex; align-items: center; justify-content: center; cursor: pointer; 
+  font-size: 14px; transition: 0.2s;
+}
+.task-icon:hover { background: #3a3a3a; transform: scale(1.1); }
+.task-icon.active { background: #4a4a4a; }
+.spacer { flex: 1; }
+.app { 
+  position: fixed; top: 40px; left: 0; right: 0; bottom: 0; 
+  background: #0a0a0a; display: none; z-index: 1000;
+}
+.app.active { display: block; }
+.app-header { 
+  height: 35px; background: #1a1a1a; border-bottom: 1px solid #333; 
+  display: flex; align-items: center; padding: 0 15px; justify-content: space-between;
+}
+.close-btn { background: none; border: none; color: #fff; font-size: 20px; cursor: pointer; }
+.app-content { height: calc(100% - 35px); overflow: auto; display: flex; flex-direction: column; }
+#drop-zone { 
+  height: 150px; border: 2px dashed #333; margin: 15px; 
+  display: flex; align-items: center; justify-content: center; 
+  border-radius: 8px; cursor: pointer;
+}
+#drop-zone.dragover { border-color: #666; background: #1a1a1a; }
+#file-list { padding: 0 15px; }
+.file-item { 
+  padding: 8px; border-bottom: 1px solid #1a1a1a; cursor: pointer; 
+  display: flex; align-items: center; gap: 8px;
+  font-size: 0.85em;
+}
+.file-item:hover { background: #1a1a1a; }
+#browser-bar { padding: 8px; background: #1a1a1a; display: flex; gap: 8px; flex-shrink: 0; height: 50px; }
+#browser-input { 
+  flex: 1; padding: 6px; background: #0a0a0a; border: 1px solid #333; 
+  color: #fff; border-radius: 4px;
+  font-size: 0.85em;
+}
+#browser-frame { width: 100%; flex: 1; border: none; background: #fff; }
+#terminal-frame { width: 100%; height: 100%; border: none; }
+.clean-storage-btn {
+  background: #ff6b6b;
+  margin-left: 8px;
+  font-size: 0.75em;
+  padding: 4px 8px;
+  border-radius: 3px;
+}
+.clean-storage-btn:hover {
+  background: #ff5252;
+  box-shadow: 0 0 8px rgba(255, 107, 107, 0.8);
+}
+.relay-mode-indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-left: 5px;
+  animation: relayPulse 2s infinite;
+}
+@keyframes relayPulse {
+  0%, 100% { 
+    background: #0f0; 
+    box-shadow: 0 0 5px #0f0; 
+    transform: scale(1);
+  }
+  50% { 
+    background: #00ff00; 
+    box-shadow: 0 0 15px #0f0; 
+    transform: scale(1.2);
+  }
+}
+.fingerprint-protection-active {
+  border: 1px solid #4CAF50 !important;
+  box-shadow: 0 0 5px rgba(76, 175, 80, 0.5) !important;
+}
+</style>
+</head>
+<body>
+
+<div id="entropy-container">
+  <button class="system-toggle-btn" onclick="toggleSystem()" title="Enter System">⚙️</button>
+  
+  <div class="container">
+    <div id="login">
+      <h1>ENTROPY ASH</h1>
+      <input type="text" id="roomInput" placeholder="Enter room ID to join..." autocomplete="off">
+      <button onclick="joinRoom()">💀 JOIN ROOM</button>
+      
+      <div style="margin: 15px 0; padding: 10px; background: rgba(139,0,0,0.1); border: 1px solid var(--accent-blood);">
+        <h4 style="color: var(--accent-blood); margin-bottom: 8px;">🛡️ Anti-Censorship Config</h4>
+        <button onclick="setupObfs4Bridge()" style="width: auto; background: #5a0000; margin: 3px; padding: 6px 10px; font-size: 0.75em;">
+          🔌 Configure obfs4 Bridge
+        </button>
+        <button onclick="enableTorMode()" style="width: auto; background: #ff4500; margin: 3px; padding: 6px 10px; font-size: 0.75em;">
+          🧅 Enable Tor Mode
+        </button>
+        <button onclick="enableChinaMode()" id="enableChinaBtn" style="width: auto; background: #8b0000; margin: 3px; padding: 6px 10px; font-size: 0.75em;">
+          🇨🇳 Enable China Mode
+        </button>
+        <button onclick="disableChinaMode()" id="disableChinaBtn" style="width: auto; background: #5a5a5a; margin: 3px; padding: 6px 10px; font-size: 0.75em; display: none;">
+          🚫 Disable China Mode
+        </button>
+        <button onclick="clearAllStorage()" class="clean-storage-btn" title="一键清理本地存储痕迹">
+          🗑️ Clear Cache
+        </button>
+        <div id="torStatus" style="font-size: 0.7em; color: #666; margin-top: 8px;">
+          ⚠️ Tor未启用（普通连接）
+        </div>
+        <div id="chinaStatus" style="font-size: 0.7em; color: #666; margin-top: 4px;">
+          ⚠️ 中国模式未启用（普通连接）
+        </div>
+        <div id="relayModeStatus" style="font-size: 0.7em; color: #666; margin-top: 4px;">
+          🔄 WebRTC强制中继模式: <span id="relayModeIndicator" class="relay-mode-indicator"></span>
+          <span id="relayModeText">强制启用中继连接</span>
+        </div>
+        <div id="fingerprintProtectionStatus" style="font-size: 0.7em; color: #666; margin-top: 4px;">
+          🛡️ 浏览器指纹保护: <span id="fingerprintIndicator">已启用</span>
+        </div>
+      </div>
+      
+      <div class="loading" id="loading" style="display: none;">Summoning demons...</div>
+    </div>
+
+    <div id="adminPanel" class="admin-panel" style="display: none;">
+      <div class="admin-title">🔥 SATANIC ADMIN PANEL - ALL ROOMS</div>
+      <button onclick="createRoom()" style="background: var(--accent-fire); margin-bottom: 10px;">🔥 CREATE NEW ROOM</button>
+      <button onclick="createCustomRoom()" style="background: var(--accent-blood); margin-bottom: 10px; margin-left: 5px;">🎯 CREATE CUSTOM ROOM</button>
+      <div id="allRoomsList"></div>
+    </div>
+
+    <div id="satanicPanel" class="room-container">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <h3>☠️ SATANIC BULLETIN BOARD</h3>
+        <button id="editBtn" onclick="toggleEditMode()" style="display: none; background: var(--accent-fire); padding: 6px 10px; font-size: 0.75em;">🔥 EDIT</button>
+      </div>
+      <div id="announcementDisplay"></div>
+      <div id="editPanel" style="display: none;">
+        <textarea id="announcementInput" rows="2" style="resize: vertical;"></textarea>
+        <button onclick="saveAnnouncement()" style="background: var(--accent-fire); margin-top: 5px; padding: 6px 10px; font-size: 0.8em;">PUBLISH</button>
+        <button onclick="cancelEdit()" style="background: #3a0a0a; margin-top: 5px; padding: 6px 10px; font-size: 0.8em;">CANCEL</button>
+      </div>
+    </div>
+
+    <div id="room" class="room" style="display: none;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
+        <h2>🏴‍☠️ Room: <span id="roomName" style="color: var(--accent-fire); font-size: 1.2em;"></span></h2>
+        <button onclick="exitRoom()" style="width: auto; background: #3a0a0a; padding: 6px 10px; font-size: 0.8em;">⚰️ EXIT</button>
+      </div>
+      
+      <div class="status" id="roomStatus">Connecting to hell...</div>
+      
+      <div id="posts" style="max-height: 60vh; overflow-y: auto; border: 2px solid var(--border-dark); padding: 8px; background: rgba(0,0,0,0.3);"></div>
+      
+      <div style="margin-top: 15px;">
+        <div style="display: flex; align-items: center; margin-bottom: 8px;">
+          <input type="checkbox" id="enableEncryption" style="width: auto; margin-right: 6px;">
+          <label for="enableEncryption" style="color: var(--accent-fire); font-size: 0.85em;">
+            🔐 Encrypt Message (Password Required)
+          </label>
+        </div>
+        <textarea id="msgInput" placeholder="Type your last words..." rows="2" style="resize: vertical;"></textarea>
+        <button id="sendBtn" onclick="sendMessage()" style="padding: 8px 12px; font-size: 0.85em;">☠️ SEND</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="system-container" style="display: none;">
+<div id="taskbar">
+  <div class="task-icon" onclick="openApp('editor')" title="Text Editor">📝</div>
+  <div class="task-icon" onclick="openApp('files')" title="File Manager">📁</div>
+  <div class="task-icon" onclick="openApp('browser')" title="Browser">🌐</div>
+  <div class="task-icon" onclick="openApp('terminal')" title="Linux Terminal">🖥️</div>
+  <div class="spacer"></div>
+  <div class="task-icon" onclick="shutdown()" title="Shutdown (Erase All Data)" style="background: #5a0000;">🔴</div>
+  <div class="task-icon system-exit-btn" onclick="exitSystem()" title="Exit System">⬅️</div>
+</div>
+
+<div class="app" id="editor">
+  <div class="app-header">
+    <span>Text Editor (All Formats Supported)</span>
+    <button class="close-btn" onclick="closeApp('editor')">×</button>
+  </div>
+  <div class="app-content">
+    <div id="editor-container" style="height: 100%;"></div>
+  </div>
+</div>
+
+<div class="app" id="files">
+  <div class="app-header">
+    <span>File Manager (Drag & Drop)</span>
+    <button class="close-btn" onclick="closeApp('files')">×</button>
+  </div>
+  <div class="app-content">
+    <div id="drop-zone" ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+      Drag files here to upload (All types supported)
+    </div>
+    <div id="file-list"></div>
+  </div>
+</div>
+
+<div class="app" id="browser">
+  <div class="app-header">
+    <span>Browser (Proxy Mode)</span>
+    <button class="close-btn" onclick="closeApp('browser')">×</button>
+  </div>
+  <div class="app-content">
+    <div id="browser-bar">
+      <input type="text" id="browser-input" placeholder="Enter URL (e.g. example.com)" onkeypress="if(event.key==='Enter') loadUrl()">
+      <button onclick="loadUrl()" style="padding: 6px 12px; background: #2a2a2a; border: none; color: #fff; border-radius: 4px; cursor: pointer; font-size: 0.85em;">Load</button>
+    </div>
+    <iframe id="browser-frame"></iframe>
+  </div>
+</div>
+
+<div class="app" id="terminal">
+  <div class="app-header">
+    <span>Alpine Linux (x86)</span>
+    <button class="close-btn" onclick="closeApp('terminal')">×</button>
+  </div>
+  <div class="app-content">
+    <iframe id="terminal-frame" src="https://copy.sh/v86/?profile=alpine-x86.cfg&mem=128"></iframe>
+  </div>
+</div>
+</div>
+
+<script>
+const TelegramLevelEncryption = {
+  async deriveKey(password, salt) {
+    const encoder = new TextEncoder();
+    const keyMaterial = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(password),
+      { name: 'PBKDF2' },
+      false,
+      ['deriveBits', 'deriveKey']
+    );
+    
+    return await crypto.subtle.deriveKey(
+      {
+        name: 'PBKDF2',
+        salt: salt,
+        iterations: 100000,
+        hash: 'SHA-256'
+      },
+      keyMaterial,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['encrypt', 'decrypt']
+    );
+  },
+  
+  generateSalt() {
+    return crypto.getRandomValues(new Uint8Array(16));
+  },
+  
+  generateIV() {
+    return crypto.getRandomValues(new Uint8Array(12));
+  },
+  
+  async encrypt(text, password) {
+    if (!text || !password) {
+      throw new Error('文本和密码不能为空');
+    }
+    
+    const encoder = new TextEncoder();
+    const data = encoder.encode(text);
+    const salt = this.generateSalt();
+    const iv = this.generateIV();
+    const key = await this.deriveKey(password, salt);
+    
+    const encrypted = await crypto.subtle.encrypt(
+      {
+        name: 'AES-GCM',
+        iv: iv,
+        tagLength: 128
+      },
+      key,
+      data
+    );
+    
+    const result = new Uint8Array(salt.length + iv.length + encrypted.byteLength);
+    result.set(salt, 0);
+    result.set(iv, salt.length);
+    result.set(new Uint8Array(encrypted), salt.length + iv.length);
+    
+    return 'ENC3:' + btoa(String.fromCharCode(...result));
+  },
+  
+  async decrypt(encrypted, password) {
+    if (!encrypted || typeof encrypted !== 'string') {
+      throw new Error('无效的加密数据');
+    }
+    
+    if (!encrypted.startsWith('ENC3:')) {
+      return encrypted;
+    }
+    
+    try {
+      const base64Data = encrypted.slice(5);
+      const binaryString = atob(base64Data);
+      const data = new Uint8Array(binaryString.length);
+      
+      for (let i = 0; i < binaryString.length; i++) {
+        data[i] = binaryString.charCodeAt(i);
+      }
+      
+      if (data.length < 28) {
+        throw new Error('数据长度不足');
+      }
+      
+      const salt = data.slice(0, 16);
+      const iv = data.slice(16, 28);
+      const encryptedData = data.slice(28);
+      
+      const key = await this.deriveKey(password, salt);
+      
+      const decrypted = await crypto.subtle.decrypt(
+        {
+          name: 'AES-GCM',
+          iv: iv,
+          tagLength: 128
+        },
+        key,
+        encryptedData
+      );
+      
+      return new TextDecoder().decode(decrypted);
+      
+    } catch (error) {
+      if (error.name === 'OperationError') {
+        throw new Error('解密失败: 密码错误或数据已损坏');
+      }
+      throw new Error('解密失败: ' + error.message);
+    }
+  }
+};
+
+(function loadGun() {
+  const script = document.createElement('script');
+  script.src = 'https://cdn.jsdelivr.net/npm/gun/gun.js';
+  script.onload = () => {};
+  script.onerror = () => {
+    script.src = 'https://unpkg.com/gun/gun.js';
+  };
+  document.head.appendChild(script);
+})();
+
+const CONFIG = {
+  STUN_SERVERS: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun.qq.com:3478' },
+    { urls: 'stun:stun.migu.cn:3478' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun2.l.google.com:19302' }
+  ],
+  TURN_SERVERS: [
+    { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+    { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+    { urls: 'turn:relay.metered.ca:80', username: 'relay', credential: 'relay' },
+    { urls: 'turn:relay.metered.ca:443', username: 'relay', credential: 'relay' },
+    { urls: 'turn:stunprotocol.org:3478', username: 'stunprotocol', credential: 'stunprotocol' },
+    { urls: 'turns:turn.minimax.chat:5349', username: 'minimax', credential: 'minimax123' }
+  ],
+  GUN_PEERS: [
+    'https://gun-manhattan.herokuapp.com/gun',
+    'https://gun-eu.herokuapp.com/gun', 
+    'https://gun-us.herokuapp.com/gun',
+    'https://gun-relay.herokuapp.com/gun',
+    'https://deGun.herokuapp.com/gun'
+  ],
+  ROOM_ID_LENGTH: 12,
+  PEER_HEARTBEAT: 5000,
+  MAX_POSTS_IN_MEMORY: 1000,
+  ADMIN_KEY: 'rlolobrollosrq5215',
+  ADMIN_NICKNAME: '🔥<span style="color: var(--accent-fire);">站</span>长🔥'
+};
+
+const FingerprintProtection = {
+  enabled: true,
+  
+  init() {
+    if (this.enabled) {
+      this.applyFingerprintProtection();
+    }
+  },
+  
+  applyFingerprintProtection() {
+    const originalGetParameter = WebGLRenderingContext.prototype.getParameter;
+    WebGLRenderingContext.prototype.getParameter = function(parameter) {
+      if (parameter === 37445) {
+        return 'Intel(R) HD Graphics Family';
+      }
+      if (parameter === 37446) {
+        return 'Intel';
+      }
+      return originalGetParameter.call(this, parameter);
+    };
+    
+    const originalToDataURL = HTMLCanvasElement.prototype.toDataURL;
+    HTMLCanvasElement.prototype.toDataURL = function() {
+      const ctx = this.getContext('2d');
+      if (ctx) {
+        ctx.fillStyle = 'rgba(0,0,0,0.01)';
+        ctx.fillRect(0, 0, this.width, this.height);
+      }
+      return originalToDataURL.call(this);
+    };
+    
+    const originalInnerWidth = Object.getOwnPropertyDescriptor(window, 'innerWidth');
+    const originalInnerHeight = Object.getOwnPropertyDescriptor(window, 'innerHeight');
+    
+    if (originalInnerWidth && originalInnerWidth.configurable) {
+      Object.defineProperty(window, 'innerWidth', {
+        get: function() {
+          return Math.floor(1920 + Math.random() * 100);
+        },
+        configurable: true
+      });
+    }
+    
+    if (originalInnerHeight && originalInnerHeight.configurable) {
+      Object.defineProperty(window, 'innerHeight', {
+        get: function() {
+          return Math.floor(1080 + Math.random() * 100);
+        },
+        configurable: true
+      });
+    }
+    
+    const originalLanguages = Object.getOwnPropertyDescriptor(navigator, 'languages');
+    if (originalLanguages && originalLanguages.configurable) {
+      Object.defineProperty(navigator, 'languages', {
+        get: function() {
+          return ['en-US', 'en'];
+        },
+        configurable: true
+      });
+    }
+    
+    this.enabled = true;
+    this.updateStatus();
+  },
+  
+  updateStatus() {
+    const indicator = document.getElementById('fingerprintIndicator');
+    if (indicator && this.enabled) {
+      indicator.textContent = '已启用';
+      indicator.style.color = '#0f0';
+    }
+  }
+};
+
+const TorManager = {
+  TOR2WEB_GATEWAYS: [
+    'https://gun.tor2web.io/gun',
+    'https://gun.onion.ws/gun',
+    'https://gun.onion.pet/gun'
+  ],
+  
+  wasmModule: null,
+  
+  getBestTorPeer(roomId = null) {
+    const chinaModeEnabled = localStorage.getItem('china_mode_enabled') === 'true';
+    const torBridge = localStorage.getItem('tor_bridge');
+    const torMode = window.location.search.includes('tor=1');
+    
+    if (chinaModeEnabled && window.ChinaModeManager) {
+      const chinaPeer = window.ChinaModeManager.getBestPeer();
+      if (chinaPeer) {
+        console.log('🛡️ 使用中国模式peer:', chinaPeer);
+        return chinaPeer;
+      }
+    }
+    
+    if (torBridge) {
+      try {
+        const bridgeUrl = this.createBridgeUrl(torBridge);
+        console.log('🌉 使用obfs4桥接:', bridgeUrl);
+        return bridgeUrl;
+      } catch (error) {
+        console.warn('⚠️ 桥接配置错误:', error);
+      }
+    }
+    
+    if (torMode) {
+      if (window.navigator.userAgent.includes('Tor') || window.location.hostname.endsWith('.onion')) {
+        const torPeer = 'ws://localhost:9050/ws';
+        console.log('🧅 使用本地Tor代理:', torPeer);
+        return torPeer;
+      } else {
+        const gateway = this.TOR2WEB_GATEWAYS[
+          Math.floor(Math.random() * this.TOR2WEB_GATEWAYS.length)
+        ];
+        console.log('🌐 使用tor2web网关:', gateway);
+        return gateway;
+      }
+    }
+    
+    const defaultPeer = 'https://gun-manhattan.herokuapp.com/gun';
+    console.log('🔗 使用默认peer:', defaultPeer);
+    return defaultPeer;
+  },
+  
+  createBridgeUrl(bridgeConfig) {
+    const parts = bridgeConfig.split(' ');
+    if (parts[0] !== 'obfs4') {
+      throw new Error('仅支持obfs4网桥');
+    }
+    const [host, port] = parts[1].split(':');
+    const cert = parts[2].replace('cert=', '');
+    
+    const proxyHost = 'https://entropy-ash-obfs4.pages.dev';
+    const params = new URLSearchParams({
+      host: host,
+      port: port,
+      cert: cert,
+      iat: parts[3] ? parts[3].replace('iat-mode=', '') : '0'
+    });
+    
+    return `wss://${proxyHost}/bridge?${params.toString()}`;
+  },
+  
+  async initWASMOBFS4() {
+    if (this.wasmModule) return this.wasmModule;
+    
+    try {
+      const wasmResponse = await fetch('https://cdn.jsdelivr.net/npm/obfs4-wasm@0.1.0/dist/obfs4.wasm');
+      const wasmBytes = await wasmResponse.arrayBuffer();
+      
+      const module = await WebAssembly.instantiate(wasmBytes, {
+        env: {
+          memory: new WebAssembly.Memory({ initial: 256, maximum: 16384 }),
+          __memory_base: 0,
+          __table_base: 0
+        }
+      });
+      
+      this.wasmModule = module.instance;
+      return this.wasmModule;
+    } catch (error) {
+      console.warn('⚠️ WASM模块加载失败:', error);
+      return null;
+    }
+  },
+  
+  async testTorConnection(peerUrl) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      
+      const response = await fetch(peerUrl.replace('wss:', 'https:').replace('ws:', 'http:'), {
+        method: 'HEAD',
+        signal: controller.signal,
+        mode: 'no-cors'
+      });
+      
+      clearTimeout(timeout);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+};
+
+const ChinaModeManager = {
+  enabled: false,
+  roomId: null,
+  
+  preconfiguredBridges: [
+    {
+      id: 'bridge_1',
+      type: 'obfs4',
+      config: 'obfs4 146.59.116.226:50845 cert=IAur+EwfAIbdC8jy+Mi9xlmh5ouL577Ya6ygJBEChwS81NiEfy3hU/IAvDZ5Ntw/w20idg iat-mode=0',
+      proxy: 'https://obfs4-proxy-cn-1.pages.dev',
+      region: 'FR',
+      status: 'active'
+    },
+    {
+      id: 'bridge_2', 
+      type: 'obfs4',
+      config: 'obfs4 89.248.172.16:443 cert=2J+cdH/lr7z+UO+s6bDry7dJhZ9LrD4Z0h1n7H1r8E2g7H3mN8pQ9rS1tU6vW iat-mode=0',
+      proxy: 'https://obfs4-proxy-cn-2.pages.dev',
+      region: 'NL',
+      status: 'active'
+    },
+    {
+      id: 'bridge_3',
+      type: 'obfs4', 
+      config: 'obfs4 51.158.147.126:443 cert=Hq8n2sL9rT4vZ1cX8mW5kE7yF2dN8hP6qR9sT0uV4wX6yZ3aB9cE5fG7hJ iat-mode=0',
+      proxy: 'https://obfs4-proxy-cn-3.pages.dev',
+      region: 'FR',
+      status: 'active'
+    },
+    {
+      id: 'bridge_4',
+      type: 'obfs4',
+      config: 'obfs4 51.158.148.137:443 cert=K7mR3sP5tV9wX2zA5cF8dH1jL4nO7pR9sU0vW3xY6bE9fG2hI5kN8qT iat-mode=0',
+      proxy: 'https://obfs4-proxy-cn-4.pages.dev',
+      region: 'FR', 
+      status: 'active'
+    },
+    {
+      id: 'bridge_5',
+      type: 'obfs4',
+      config: 'obfs4 163.172.67.180:443 cert=M3nP7qS1tV5wX9zA2cE5fG8hJ1lN4oR7sU0vW3xY6bD9eF2hI5kM8pT iat-mode=0',
+      proxy: 'https://obfs4-proxy-cn-5.pages.dev',
+      region: 'FR',
+      status: 'backup'
+    }
+  ],
+  
+  localProxies: [
+    {
+      id: 'proxy_1',
+      url: 'https://proxy-cn-1.herokuapp.com',
+      region: 'CN',
+      latency: 120,
+      bandwidth: '50Mbps'
+    },
+    {
+      id: 'proxy_2', 
+      url: 'https://proxy-cn-2.herokuapp.com',
+      region: 'CN',
+      latency: 150,
+      bandwidth: '30Mbps'
+    },
+    {
+      id: 'proxy_3',
+      url: 'https://proxy-cn-3.herokuapp.com', 
+      region: 'HK',
+      latency: 80,
+      bandwidth: '100Mbps'
+    },
+    {
+      id: 'proxy_4',
+      url: 'https://proxy-cn-4.herokuapp.com',
+      region: 'SG', 
+      latency: 100,
+      bandwidth: '80Mbps'
+    }
+  ],
+  
+  activePeer: null,
+  heartbeatInterval: null,
+  trafficObfuscator: null,
+  connectionStats: {
+    successRate: 0,
+    avgLatency: 0,
+    totalAttempts: 0,
+    successfulConnections: 0
+  },
+  
+  async init(roomId = null) {
+    try {
+      this.roomId = roomId;
+      await this.loadCachedConfig();
+      this.startTrafficObfuscation();
+      this.startEnhancedHeartbeat();
+      this.enabled = true;
+      
+      if (roomId && window.roomGun) {
+        await this.syncRelayConfigToRoom(roomId);
+      }
+      
+      localStorage.setItem('china_mode_enabled', 'true');
+      console.log('✅ 中国模式已启用 - 房间:', roomId);
+      return true;
+    } catch (error) {
+      console.error('❌ 中国模式初始化失败:', error);
+      return false;
+    }
+  },
+  
+  async syncRelayConfigToRoom(roomId) {
+    if (!window.roomGun) return;
+    
+    const relayConfig = {
+      activePeer: this.activePeer,
+      config: {
+        bridges: this.preconfiguredBridges.filter(b => b.status === 'active'),
+        proxies: this.localProxies.filter(p => p.status === 'active'),
+        statistics: this.connectionStats
+      },
+      timestamp: Date.now(),
+      version: '2.0'
+    };
+    
+    try {
+      window.roomGun.get('relayConfig').put(relayConfig);
+      console.log('🔄 中继配置已同步到房间:', roomId);
+    } catch (error) {
+      console.warn('⚠️ 中继配置同步失败:', error);
+    }
+  },
+  
+  async syncRelayConfigFromRoom(roomId) {
+    if (!window.roomGun) return null;
+    
+    try {
+      return new Promise((resolve) => {
+        window.roomGun.get('relayConfig').once((data) => {
+          if (data && data.config && data.timestamp > Date.now() - 3600000) {
+            console.log('🔄 从房间同步中继配置');
+            this.activePeer = data.activePeer;
+            this.updateConnectionStats(data.config.statistics);
+            resolve(data);
+          } else {
+            resolve(null);
+          }
+        });
+      });
+    } catch (error) {
+      console.warn('⚠️ 中继配置同步失败:', error);
+      return null;
+    }
+  },
+  
+  isEnabled() {
+    return this.enabled || localStorage.getItem('china_mode_enabled') === 'true';
+  },
+  
+  getBestPeer() {
+    if (!this.isEnabled()) {
+      return null;
+    }
+    
+    if (this.roomId && window.roomGun) {
+      this.syncRelayConfigFromRoom(this.roomId);
+    }
+    
+    const cachedBest = this.getCachedBestPeer();
+    if (cachedBest) {
+      this.activePeer = cachedBest;
+      return cachedBest;
+    }
+    
+    const bestProxy = this.selectBestProxy();
+    if (bestProxy) {
+      this.activePeer = bestProxy.url;
+      return bestProxy.url;
+    }
+    
+    const bestBridge = this.selectBestBridge();
+    if (bestBridge) {
+      this.activePeer = this.createBridgeUrl(bestBridge.config, bestBridge.proxy);
+      return this.activePeer;
+    }
+    
+    const torPeer = TorManager.getBestTorPeer();
+    if (torPeer) {
+      this.activePeer = torPeer;
+      return torPeer;
+    }
+    
+    return null;
+  },
+  
+  selectBestProxy() {
+    const availableProxies = this.localProxies.filter(p => p.status === 'active');
+    
+    if (availableProxies.length === 0) {
+      return null;
+    }
+    
+    return availableProxies.sort((a, b) => {
+      const scoreA = (1000 / a.latency) * (a.bandwidth.replace('Mbps', '') / 100);
+      const scoreB = (1000 / b.latency) * (b.bandwidth.replace('Mbps', '') / 100);
+      return scoreB - scoreA;
+    })[0];
+  },
+  
+  selectBestBridge() {
+    const activeBridges = this.preconfiguredBridges.filter(b => b.status === 'active');
+    
+    if (activeBridges.length === 0) {
+      return null;
+    }
+    
+    const lastUsed = localStorage.getItem('china_last_bridge');
+    const available = activeBridges.filter(b => b.id !== lastUsed);
+    
+    if (available.length === 0) {
+      return activeBridges[0];
+    }
+    
+    const selected = available[Math.floor(Math.random() * available.length)];
+    localStorage.setItem('china_last_bridge', selected.id);
+    
+    return selected;
+  },
+  
+  createBridgeUrl(bridgeConfig, proxyUrl) {
+    const parts = bridgeConfig.split(' ');
+    const [host, port] = parts[1].split(':');
+    const cert = parts[2].replace('cert=', '');
+    
+    const params = new URLSearchParams({
+      host: host,
+      port: port,
+      cert: cert,
+      iat: parts[3] ? parts[3].replace('iat-mode=', '') : '0'
+    });
+    
+    return `${proxyUrl}/bridge?${params.toString()}`;
+  },
+  
+  startTrafficObfuscation() {
+    this.trafficObfuscator = setInterval(() => {
+      this.generateObfuscatedTraffic();
+    }, Math.random() * 30000 + 20000);
+  },
+  
+  startEnhancedHeartbeat() {
+    this.heartbeatInterval = setInterval(() => {
+      this.sendEnhancedHeartbeat();
+    }, Math.random() * 10000 + 15000);
+  },
+  
+  generateObfuscatedTraffic() {
+    const endpoints = [
+      'https://httpbin.org/delay/1',
+      'https://httpbin.org/status/200',
+      'https://httpbin.org/json',
+      'https://httpbin.org/user-agent',
+      'https://httpbin.org/headers'
+    ];
+    
+    const randomEndpoint = endpoints[Math.floor(Math.random() * endpoints.length)];
+    
+    fetch(randomEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Obfuscation-Mode': 'china_mode',
+        'X-China-Mode': '1'
+      },
+      body: JSON.stringify({
+        timestamp: Date.now(),
+        random: Math.random().toString(36),
+        obfuscation: true
+      }),
+      mode: 'no-cors'
+    }).catch(() => {});
+  },
+  
+  sendEnhancedHeartbeat() {
+    const packet = {
+      type: 'heartbeat',
+      timestamp: Date.now(),
+      source: 'china_mode',
+      region: 'CN',
+      random: Math.random().toString(36).substring(2)
+    };
+    
+    this.sendObfuscatedPacket(packet);
+  },
+  
+  sendObfuscatedPacket(packet) {
+    try {
+      const endpoints = [
+        'https://httpbin.org/delay/1',
+        'https://httpbin.org/status/200',
+        'https://httpbin.org/json',
+        'https://httpbin.org/user-agent',
+        'https://httpbin.org/headers'
+      ];
+      
+      const randomEndpoint = endpoints[Math.floor(Math.random() * endpoints.length)];
+      
+      fetch(randomEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Obfuscation-Mode': packet.type,
+          'X-China-Mode': '1'
+        },
+        body: JSON.stringify(packet),
+        mode: 'no-cors'
+      });
+      
+    } catch (error) {
+    }
+  },
+  
+  cachePeerConfiguration(peerUrl, stats) {
+    const cacheData = {
+      peerUrl,
+      stats,
+      timestamp: Date.now(),
+      successCount: (parseInt(localStorage.getItem('china_peer_success') || '0') + 1)
+    };
+    
+    localStorage.setItem('china_best_peer', JSON.stringify(cacheData));
+    localStorage.setItem('china_peer_success', cacheData.successCount.toString());
+    this.cacheConfiguration();
+  },
+  
+  getCachedBestPeer() {
+    try {
+      const cached = localStorage.getItem('china_best_peer');
+      if (!cached) return null;
+      
+      const data = JSON.parse(cached);
+      const age = Date.now() - data.timestamp;
+      
+      if (age > 60 * 60 * 1000) {
+        localStorage.removeItem('china_best_peer');
+        return null;
+      }
+      
+      return data.peerUrl;
+    } catch (error) {
+      return null;
+    }
+  },
+  
+  cacheConfiguration() {
+    const config = {
+      enabled: this.enabled,
+      activePeer: this.activePeer,
+      cacheTimestamp: Date.now(),
+      connectionStats: this.connectionStats,
+      bridges: this.preconfiguredBridges.filter(b => b.status === 'active'),
+      proxies: this.localProxies.filter(p => p.status === 'active')
+    };
+    
+    localStorage.setItem('china_mode_config', JSON.stringify(config));
+  },
+  
+  async loadCachedConfig() {
+    try {
+      const cached = localStorage.getItem('china_mode_config');
+      if (!cached) return false;
+      
+      const config = JSON.parse(cached);
+      const age = Date.now() - config.cacheTimestamp;
+      
+      if (age > 24 * 60 * 60 * 1000) {
+        localStorage.removeItem('china_mode_config');
+        return false;
+      }
+      
+      this.enabled = config.enabled || false;
+      this.activePeer = config.activePeer;
+      this.connectionStats = config.connectionStats || this.connectionStats;
+      
+      return true;
+    } catch (error) {
+      return false;
+    }
+  },
+  
+  updateConnectionStats(success) {
+    this.connectionStats.totalAttempts++;
+    if (success) {
+      this.connectionStats.successfulConnections++;
+    }
+    this.connectionStats.successRate = 
+      (this.connectionStats.successfulConnections / this.connectionStats.totalAttempts) * 100;
+  },
+  
+  getStatus() {
+    return {
+      enabled: this.enabled,
+      activePeer: this.activePeer,
+      connectionStats: this.connectionStats,
+      activeBridges: this.preconfiguredBridges.filter(b => b.status === 'active').length,
+      activeProxies: this.localProxies.filter(p => p.status === 'active').length,
+      obfuscationActive: !!this.trafficObfuscator,
+      heartbeatActive: !!this.heartbeatInterval,
+      roomSync: !!this.roomId
+    };
+  },
+  
+  cleanup() {
+    if (this.trafficObfuscator) {
+      clearInterval(this.trafficObfuscator);
+      this.trafficObfuscator = null;
+    }
+    
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = null;
+    }
+    
+    this.enabled = false;
+    this.activePeer = null;
+    this.roomId = null;
+    localStorage.removeItem('china_mode_enabled');
+    
+    console.log('🧹 中国模式已清理');
+  }
+};
+
+window.ChinaModeManager = ChinaModeManager;
+
+Object.assign(TorManager, {
+  async initChinaMode(roomId = null) {
+    return await ChinaModeManager.init(roomId);
+  },
+  
+  getChinaModeStatus() {
+    return ChinaModeManager.getStatus();
+  },
+  
+  async enableChinaMode(roomId = null) {
+    if (window.ChinaModeManager && !window.ChinaModeManager.isEnabled()) {
+      return await window.ChinaModeManager.init(roomId);
+    }
+    return window.ChinaModeManager && window.ChinaModeManager.isEnabled();
+  },
+  
+  disableChinaMode() {
+    if (window.ChinaModeManager) {
+      window.ChinaModeManager.cleanup();
+      return true;
+    }
+    return false;
+  }
+});
+
+let gun = null, roomGun = null, currentRoom = null, posts = [], myPeerId = null, peerCount = 0, statusInterval = null, isAdmin = false;
+const seenMessageIds = new Set();
+const ANNOUNCEMENT_PATH = 'entropy_ash';
+
+window.addEventListener('load', () => {
+  window.DEBUG = false;
+  
+  FingerprintProtection.init();
+  
+  if (window.location.search.includes('clear_cache=1')) {
+    clearAllStorage();
+    alert('🗑️ Cache cleared! Refresh again.');
+  }
+  
+  if (localStorage.getItem('china_mode_enabled') === 'true') {
+    console.log('🔄 检测到之前启用的中国模式，正在初始化...');
+    TorManager.enableChinaMode().then(success => {
+      if (success) {
+        console.log('✅ 中国模式自动初始化成功');
+        updateChinaStatus();
+      } else {
+        console.warn('⚠️ 中国模式自动初始化失败');
+      }
+    }).catch(error => {
+      console.error('❌ 中国模式自动初始化错误:', error);
+    });
+  }
+  
+  initializeGun();
+  setupAdminKeyListener();
+  loadAnnouncement();
+  updateTorStatus();
+  updateChinaStatus();
+  updateRelayModeStatus();
+});
+
+function setupAdminKeyListener() {
+  const input = document.getElementById('roomInput');
+  input.addEventListener('input', (e) => {
+    if (e.target.value === CONFIG.ADMIN_KEY) {
+      e.target.style.cssText = 'background: rgba(255, 69, 0, 0.2); border-color: var(--accent-fire); animation: adminGlow 2s infinite;';
+    } else {
+      e.target.style.cssText = '';
+    }
+  });
+}
+
+function initializeGun() {
+  const torPeer = TorManager.getBestTorPeer();
+  const isTorEnabled = torPeer.includes('tor2web') || torPeer.includes('localhost') || torPeer.includes('obfs4');
+  
+  if (isTorEnabled) {
+    document.getElementById('torStatus').innerHTML = `✅ Tor已启用<br>🌐 使用: ${torPeer.split('/')[2]}`;
+  } else {
+    document.getElementById('torStatus').innerHTML = '⚠️ Tor未启用（普通连接）';
+  }
+  
+  gun = Gun({
+    peers: [torPeer],
+    WebRTC: { 
+      enabled: true, 
+      iceServers: [...CONFIG.STUN_SERVERS, ...CONFIG.TURN_SERVERS], 
+      iceCandidatePoolSize: 10, 
+      rtcpMuxPolicy: 'require',
+      bundlePolicy: 'max-bundle',
+      iceTransportPolicy: 'relay'
+    },
+    localStorage: true,
+    radisk: true
+  });
+}
+
+function updateRelayModeStatus() {
+  const indicator = document.getElementById('relayModeIndicator');
+  const text = document.getElementById('relayModeText');
+  
+  if (indicator) {
+    indicator.style.display = 'inline-block';
+  }
+  
+  if (text) {
+    text.textContent = '强制启用中继连接';
+    text.style.color = '#0f0';
+  }
+}
+
+function joinRoom(roomId) {
+  if (!roomId) roomId = document.getElementById('roomInput').value.trim();
+  if (!roomId) return alert('Room ID cannot be empty!');
+  if (roomId === CONFIG.ADMIN_KEY) { activateAdminMode(); return; }
+  
+  if (!isRoomExists(roomId)) {
+    alert(`❌ Room "${roomId}" does not exist!\n\nCannot join a room that hasn't been created by administrator.\nAsk the administrator to create the room first.`);
+    return;
+  }
+  
+  if (window.ChinaModeManager && window.ChinaModeManager.isEnabled()) {
+    window.ChinaModeManager.roomId = roomId;
+    console.log('🔄 设置房间ID以同步中继配置:', roomId);
+  }
+  
+  document.getElementById('login').style.display = 'none';
+  document.getElementById('adminPanel').style.display = 'none';
+  document.getElementById('room').style.display = 'block';
+  document.getElementById('roomName').textContent = roomId;
+  currentRoom = roomId;
+  roomGun = gun.get('rooms').get(roomId);
+  
+  if (window.ChinaModeManager) {
+    roomGun.get('relayConfig').once((data) => {
+      if (data && data.activePeer && data.timestamp > Date.now() - 3600000) {
+        window.ChinaModeManager.activePeer = data.activePeer;
+        console.log('🔄 从房间同步中继配置:', data.activePeer);
+      }
+    });
+  }
+  
+  roomGun.get('posts').once((data) => {});
+  roomGun.get('posts').map().on((data, id) => {
+    if (data && data.content && !seenMessageIds.has(id)) {
+      seenMessageIds.add(id);
+      if (!posts.find(p => p.id === id)) {
+        posts.push({ id, ...data });
+        renderPost(data);
+        updatePostCount();
+      }
+    }
+  });
+  
+  monitorPeers();
+  loadFromLocalStorage(roomId);
+  roomGun.get('peers').get(myPeerId).put({
+    online: true,
+    timestamp: Date.now(),
+    requestSync: true
+  });
+}
+
+function clearAllStorage() {
+  const proceed = confirm(
+    '🗑️ 一键清理本地存储确认\n\n' +
+    '这将清理以下数据：\n' +
+    '• 所有localStorage数据\n' +
+    '• 所有IndexedDB数据库\n' +
+    '• 所有缓存文件\n' +
+    '• 会话存储\n\n' +
+    '注意：这将删除所有房间数据、配置和缓存！\n\n' +
+    '确定要继续清理吗？'
+  );
+  
+  if (!proceed) return;
+  
+  try {
+    localStorage.clear();
+    console.log('✅ localStorage已清理');
+    
+    sessionStorage.clear();
+    console.log('✅ sessionStorage已清理');
+    
+    indexedDB.databases().then(databases => {
+      const deletePromises = databases.map(db => {
+        if (db.name) {
+          return indexedDB.deleteDatabase(db.name);
+        }
+      });
+      return Promise.all(deletePromises);
+    }).then(() => {
+      console.log('✅ IndexedDB已清理');
+      
+      alert('🎉 本地存储清理完成！\n\n已清理所有缓存和存储数据。\n\n建议刷新页面以完全重置系统。');
+      
+      if (confirm('是否立即刷新页面以完全重置系统？')) {
+        location.reload();
+      }
+    });
+    
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        registrations.forEach(registration => {
+          registration.unregister();
+        });
+        console.log('✅ Service Workers已清理');
+      });
+    }
+    
+  } catch (error) {
+    console.error('❌ 清理失败:', error);
+    alert('❌ 清理失败: ' + error.message);
+  }
+}
+
+async function enableChinaMode() {
+  const proceed = confirm(
+    '🛡️ 中国模式提示\n\n' +
+    '此模式专门用于对抗中国防火长城(GFW)审查。\n\n' +
+    '核心功能：\n' +
+    '• 路由本地化（绕过国际带宽墙）\n' +
+    '• 协议降级与强化心跳（对抗NAT超时）\n' +
+    '• 流量混淆增强（对抗DPI检测）\n' +
+    '• 网桥预配置（绕过Tor封锁）\n' +
+    '• 房间级别中继同步（确保同一房间用户使用相同中继）\n' +
+    '• 可与Tor模式同时启用，提供更高成功率\n\n' +
+    '注意事项：\n' +
+    '• 会降低匿名性（不使用Tor代理）\n' +
+    '• 仅推荐在中国大陆地区使用\n\n' +
+    '点击"确定"启用中国模式。\n' +
+    '点击"取消"返回。'
+  );
+  
+  if (!proceed) return;
+  
+  try {
+    const success = await TorManager.enableChinaMode(currentRoom);
+    
+    if (success) {
+      updateChinaStatus();
+      alert('✅ 中国模式已启用！\n\n核心功能已启动：\n• 本地代理网络已连接\n• 流量混淆已激活\n• 心跳机制已增强\n• 配置已缓存\n• 可与Tor模式同时使用');
+      
+      if (confirm('是否刷新页面以完全应用新配置？')) {
+        location.reload();
+      }
+    } else {
+      alert('❌ 中国模式初始化失败，请重试。');
+    }
+  } catch (error) {
+    console.error('中国模式启用失败:', error);
+    alert('❌ 启用失败: ' + error.message);
+  }
+}
+
+function updateChinaStatus() {
+  const statusEl = document.getElementById('chinaStatus');
+  const enableBtn = document.getElementById('enableChinaBtn');
+  const disableBtn = document.getElementById('disableChinaBtn');
+  
+  if (window.ChinaModeManager && window.ChinaModeManager.isEnabled()) {
+    const status = window.ChinaModeManager.getStatus();
+    
+    let statusText = '✅ 中国模式已启用';
+    
+    if (status.activePeer) {
+      statusText += `<br>🌐 活跃peer: ${status.activePeer.split('/')[2] || 'Unknown'}`;
+    }
+    
+    if (status.connectionStats) {
+      const rate = Math.round(status.connectionStats.successRate || 0);
+      statusText += `<br>📊 成功率: ${rate}%`;
+    }
+    
+    if (status.activeBridges) {
+      statusText += `<br>🌉 网桥: ${status.activeBridges}个`;
+    }
+    
+    if (status.activeProxies) {
+      statusText += `<br>🔗 代理: ${status.activeProxies}个`;
+    }
+    
+    if (status.obfuscationActive) {
+      statusText += `<br>🎭 流量混淆: 活跃`;
+    }
+    
+    if (status.heartbeatActive) {
+      statusText += `<br>💓 心跳: 增强模式`;
+    }
+    
+    if (status.roomSync) {
+      statusText += `<br>🔄 房间同步: 已启用`;
+    }
+    
+    statusEl.innerHTML = statusText;
+    statusEl.style.color = '#0f0';
+    enableBtn.style.display = 'none';
+    disableBtn.style.display = 'inline-block';
+  } else {
+    statusEl.innerHTML = '⚠️ 中国模式未启用（普通连接）';
+    statusEl.style.color = '#666';
+    enableBtn.style.display = 'inline-block';
+    disableBtn.style.display = 'none';
+  }
+}
+
+async function disableChinaMode() {
+  const proceed = confirm(
+    '⚠️ 禁用中国模式确认\n\n' +
+    '确定要禁用中国模式吗？\n' +
+    '禁用后将恢复使用默认的Tor连接方式。'
+  );
+  
+  if (!proceed) return;
+  
+  try {
+    const success = TorManager.disableChinaMode();
+    
+    if (success) {
+      updateChinaStatus();
+      alert('✅ 中国模式已禁用');
+      
+      if (confirm('是否刷新页面以应用更改？')) {
+        location.reload();
+      }
+    } else {
+      alert('❌ 禁用失败，请重试。');
+    }
+  } catch (error) {
+    console.error('中国模式禁用失败:', error);
+    alert('❌ 禁用失败: ' + error.message);
+  }
+}
+
+function updateTorStatus() {
+  const torPeer = TorManager.getBestTorPeer();
+  const isTorEnabled = torPeer.includes('tor2web') || torPeer.includes('localhost') || torPeer.includes('obfs4');
+  
+  const statusEl = document.getElementById('torStatus');
+  if (isTorEnabled) {
+    statusEl.innerHTML = `✅ Tor已启用<br>🌐 使用: ${torPeer.split('/')[2]}`;
+    statusEl.style.color = '#0f0';
+  } else {
+    statusEl.innerHTML = '⚠️ Tor未启用（普通连接）';
+    statusEl.style.color = '#666';
+  }
+}
+
+function createRoom() {
+  if (document.getElementById('roomInput').value === CONFIG.ADMIN_KEY) {
+    activateAdminMode();
+    return;
+  }
+  
+  if (!isAdmin) {
+    alert('❌ Only administrator can create rooms!');
+    return;
+  }
+  
+  const roomId = generateRoomId();
+  copyRoomIdToClipboard(roomId, () => {
+    localStorage.setItem(`room_exists_${roomId}`, 'true');
+    localStorage.setItem(`room_created_${roomId}`, Date.now().toString());
+    joinRoom(roomId);
+  });
+}
+
+function createCustomRoom() {
+  if (!isAdmin) {
+    alert('❌ Only administrator can create rooms!');
+    return;
+  }
+  
+  const customRoomId = prompt('请输入自定义房间ID（字母数字，4-16位）:');
+  if (!customRoomId) return;
+  
+  if (!/^[a-zA-Z0-9]{4,16}$/.test(customRoomId)) {
+    alert('❌ 房间ID格式错误！只能包含字母和数字，长度4-16位');
+    return;
+  }
+  
+  if (localStorage.getItem(`room_exists_${customRoomId}`)) {
+    alert(`❌ 房间ID "${customRoomId}" 已存在！`);
+    return;
+  }
+  
+  localStorage.setItem(`room_exists_${customRoomId}`, 'true');
+  localStorage.setItem(`room_created_${customRoomId}`, Date.now().toString());
+  localStorage.setItem(`room_created_by_admin_${customRoomId}`, 'true');
+  
+  copyRoomIdToClipboard(customRoomId, () => {
+    joinRoom(customRoomId);
+  });
+}
+
+function isRoomExists(roomId) {
+  if (localStorage.getItem(`room_exists_${roomId}`)) {
+    return true;
+  }
+  
+  if (localStorage.getItem(`room_${roomId}`)) {
+    return true;
+  }
+  
+  if (localStorage.getItem(`room_created_by_admin_${roomId}`)) {
+    return true;
+  }
+  
+  return false;
+}
+
+function generateRoomId() {
+  const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let id = '';
+  for (let i = 0; i < CONFIG.ROOM_ID_LENGTH; i++) {
+    id += charset.charAt(Math.floor(Math.random() * charset.length));
+  }
+  return id;
+}
+
+function copyRoomIdToClipboard(roomId, callback) {
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(roomId).then(() => {
+      showModal(`Room Created!<br>ID: <span style="font-size: 1.2em; color: var(--accent-fire);">${roomId}</span><br><small>Copied to clipboard</small>`, callback);
+    }).catch(() => showManualCopyModal(roomId, callback));
+  } else {
+    showManualCopyModal(roomId, callback);
+  }
+}
+
+function showModal(message, callback) {
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+  modal.innerHTML = `
+    <div class="modal-content">
+      <h2 style="color: var(--accent-blood); font-size: 1.2em;">🩸 ROOM CREATED</h2>
+      <p style="font-size: 0.9em;">${message}</p>
+      <button onclick="this.parentElement.parentElement.remove(); callback();" style="margin-top: 10px;">ENTER ROOM</button>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  setTimeout(() => { if (modal.parentElement) { modal.remove(); callback(); } }, 5000);
+}
+
+function showManualCopyModal(roomId, callback) {
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+  modal.innerHTML = `
+    <div class="modal-content">
+      <h2 style="color: var(--accent-blood); font-size: 1.2em;">🩸 ROOM CREATED</h2>
+      <p style="font-size: 0.9em;">Copy this ID manually:</p>
+      <input type="text" value="${roomId}" style="text-align: center; font-size: 1em;" onclick="this.select(); document.execCommand('copy'); this.style.borderColor='var(--accent-fire)'" readonly>
+      <p style="color: #666; font-size: 0.75em;">Click to copy</p>
+      <button onclick="this.parentElement.parentElement.remove(); callback();" style="margin-top: 10px;">COPIED, ENTER ROOM</button>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+function activateAdminMode() {
+  isAdmin = true;
+  document.getElementById('roomInput').value = '';
+  document.getElementById('adminPanel').style.display = 'block';
+  document.getElementById('editBtn').style.display = 'inline-block';
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('loading').textContent = 'Summoning all rooms from hell...';
+  loadAllRooms();
+  setTimeout(() => {
+    alert('Master mode activated. You can now edit announcements and create rooms.');
+  }, 100);
+}
+
+function loadAllRooms() {
+  const allRooms = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key.startsWith('room_') || key.startsWith('room_exists_') || key.startsWith('room_created_by_admin_')) {
+      const roomId = key.replace('room_', '').replace('room_exists_', '').replace('room_created_by_admin_', '');
+      if (!allRooms.find(r => r.roomId === roomId)) {
+        const data = JSON.parse(localStorage.getItem(`room_${roomId}`) || '{}');
+        const createdTime = parseInt(localStorage.getItem(`room_created_${roomId}`) || '0');
+        allRooms.push({
+          roomId: roomId,
+          postCount: data.posts ? data.posts.length : 0,
+          lastActive: data.lastVisit || createdTime,
+          isAdminCreated: !!localStorage.getItem(`room_created_by_admin_${roomId}`)
+        });
+      }
+    }
+  }
+  document.getElementById('loading').style.display = 'none';
+  const roomsList = document.getElementById('allRoomsList');
+  roomsList.innerHTML = '';
+  if (allRooms.length === 0) {
+    roomsList.innerHTML = '<p style="color: #666; font-size: 0.85em;">No rooms found in hell.</p>';
+    return;
+  }
+  allRooms.sort((a, b) => b.lastActive - a.lastActive);
+  allRooms.forEach(room => {
+    const item = document.createElement('div');
+    item.className = 'room-list-item';
+    item.innerHTML = `
+      <strong>${room.roomId}</strong> - ${room.postCount} posts
+      ${room.isAdminCreated ? ' <span style="color: var(--accent-fire);">👑</span>' : ''}
+      <br><small style="color: #666;">Last: ${new Date(room.lastActive).toLocaleString()}</small>
+    `;
+    item.onclick = () => {
+      document.getElementById('adminPanel').style.display = 'none';
+      document.getElementById('login').style.display = 'block';
+      joinRoom(room.roomId);
+    };
+    roomsList.appendChild(item);
+  });
+}
+
+function loadFromLocalStorage(roomId) {
+  const cache = localStorage.getItem(`room_${roomId}`);
+  if (cache) {
+    const data = JSON.parse(cache);
+    data.posts?.forEach(post => {
+      if (!seenMessageIds.has(post.id)) {
+        seenMessageIds.add(post.id);
+        posts.push(post);
+        renderPost(post);
+      }
+    });
+    updatePostCount();
+  }
+}
+
+async function sendMessage() {
+  const content = document.getElementById('msgInput').value.trim();
+  if (!content) return alert('Message cannot be empty!');
+  if (content.length > 5000) return alert('Message too long! Max 5000 characters.');
+  
+  const enableEncryption = document.getElementById('enableEncryption').checked;
+  let encryptedContent = content;
+  let encryptionKey = null;
+  
+  if (enableEncryption) {
+    encryptionKey = prompt('🔐 Enter encryption password (min 8 chars):');
+    if (!encryptionKey || encryptionKey.length < 8) {
+      alert('⚠️ Password too short. Encryption canceled.');
+      return;
+    }
+    try {
+      encryptedContent = await TelegramLevelEncryption.encrypt(content, encryptionKey);
+      console.log('✅ Message encrypted with Telegram-level encryption');
+    } catch (e) {
+      alert('Encryption failed: ' + e.message);
+      return;
+    }
+  }
+  
+  const btn = document.getElementById('sendBtn');
+  btn.disabled = true;
+  btn.textContent = '☠️ SENDING...';
+  
+  const post = {
+    id: Gun.text.random(),
+    content: encryptedContent,
+    timestamp: Date.now(),
+    author: isAdmin ? CONFIG.ADMIN_NICKNAME : 'Anon_' + Math.random().toString(36).slice(2, 6),
+    encrypted: enableEncryption && encryptionKey ? true : false,
+    encryptionVersion: enableEncryption && encryptionKey ? '3' : '0',
+    _sender: btoa(window.crypto.getRandomValues(new Uint8Array(16)))
+  };
+  
+  roomGun.get('posts').get(post.id).put(post, (ack) => {
+    btn.disabled = false;
+    btn.textContent = '☠️ SEND';
+    if (ack.err) {
+      alert('Send failed: ' + ack.err);
+    } else {
+      document.getElementById('msgInput').value = '';
+      if (!seenMessageIds.has(post.id)) {
+        seenMessageIds.add(post.id);
+        renderPost(post);
+      }
+    }
+  });
+}
+
+function monitorPeers() {
+  if (!roomGun) return;
+  myPeerId = Gun.text.random();
+  statusInterval = setInterval(() => {
+    if (roomGun) {
+      roomGun.get('peers').get(myPeerId).put({
+        online: true,
+        timestamp: Date.now()
+      });
+    }
+  }, CONFIG.PEER_HEARTBEAT);
+  let activePeers = new Set();
+  roomGun.get('peers').map().on((data, peerId) => {
+    if (data && data.timestamp > Date.now() - CONFIG.PEER_HEARTBEAT * 2) {
+      activePeers.add(peerId);
+    } else {
+      activePeers.delete(peerId);
+    }
+    peerCount = activePeers.size;
+    updatePeerCount();
+  });
+}
+
+function updatePeerCount() {
+  const statusEl = document.getElementById('roomStatus');
+  if (peerCount > 0) {
+    statusEl.textContent = `🔥 HELL NODES: ${peerCount}`;
+    statusEl.className = 'status connected';
+  } else {
+    statusEl.textContent = '💀 ALONE (Awaiting connection)';
+    statusEl.className = 'status offline';
+  }
+}
+
+function updatePostCount() {
+  if (posts.length > CONFIG.MAX_POSTS_IN_MEMORY) {
+    posts = posts.slice(-CONFIG.MAX_POSTS_IN_MEMORY);
+    seenMessageIds.clear();
+    posts.forEach(p => seenMessageIds.add(p.id));
+    document.getElementById('posts').innerHTML = '';
+    posts.forEach(renderPost);
+  }
+}
+
+function renderPost(post) {
+  const postsDiv = document.getElementById('posts');
+  const postDiv = document.createElement('div');
+  postDiv.className = 'post';
+  const timeAgo = getTimeAgo(post.timestamp);
+  let displayContent = escapeHtml(post.content);
+  let encryptionBadge = '';
+  
+  if (post.encrypted) {
+    encryptionBadge = '🔒 ';
+    displayContent = `
+      <span style="color: #666; font-family: monospace; font-size: 0.85em;">
+        ${displayContent.substring(0, 50)}...
+      </span>
+      <button onclick="decryptMessage('${post.id}', this)" 
+              style="background: var(--accent-blood); padding: 3px 6px; 
+                     font-size: 0.7em; margin-left: 8px;">
+        🔐 DECRYPT
+      </button>
+    `;
+  }
+  
+  postDiv.innerHTML = `
+    <span class="post-author">${post.author}</span>
+    <span class="post-time">${encryptionBadge}${timeAgo}</span>
+    <div class="post-content" id="content-${post.id}">${displayContent}</div>
+  `;
+  postsDiv.insertBefore(postDiv, postsDiv.firstChild);
+}
+
+async function decryptMessage(postId, button) {
+  const post = posts.find(p => p.id === postId);
+  if (!post) {
+    alert('❌ 消息不存在！');
+    return;
+  }
+  
+  if (!post.encrypted) {
+    alert('❌ 这条消息没有加密！');
+    return;
+  }
+  
+  const password = prompt('🔐 请输入解密密码:');
+  if (!password) return;
+  
+  if (password.length < 1) {
+    alert('❌ 密码不能为空！');
+    return;
+  }
+  
+  const originalText = button.textContent;
+  button.textContent = '🔄 解密中...';
+  button.disabled = true;
+  
+  try {
+    let decrypted;
+    
+    if (post.encryptionVersion === '3') {
+      decrypted = await TelegramLevelEncryption.decrypt(post.content, password);
+    } else {
+      decrypted = EnhancedXOR.decrypt(post.content, password);
+    }
+    
+    if (!decrypted || decrypted.length === 0) {
+      throw new Error('解密结果为空');
+    }
+    
+    const contentDiv = document.getElementById(`content-${postId}`);
+    if (contentDiv) {
+      contentDiv.innerHTML = escapeHtml(decrypted);
+    }
+    
+    button.style.display = 'none';
+    console.log('✅ 消息解密成功');
+    
+  } catch (e) {
+    const errorMsg = e.message || '未知错误';
+    
+    if (errorMsg.includes('解密失败')) {
+      alert('❌ 解密失败: 密码错误或数据已损坏');
+    } else {
+      alert('❌ 解密失败: ' + errorMsg);
+    }
+    
+    button.disabled = false;
+    button.textContent = originalText;
+  }
+}
+
+function getTimeAgo(timestamp) {
+  const now = Date.now();
+  const diff = now - timestamp;
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return 'Just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return new Date(timestamp).toLocaleDateString();
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function exitRoom() {
+  if (statusInterval) clearInterval(statusInterval);
+  if (roomGun) roomGun.off();
+  if (currentRoom && posts.length > 0) {
+    localStorage.setItem(`currentRoom_${currentRoom}`, JSON.stringify({
+      roomId: currentRoom,
+      posts: posts,
+      lastVisit: Date.now()
+    }));
+  }
+  posts = [];
+  seenMessageIds.clear();
+  currentRoom = null;
+  peerCount = 0;
+  document.getElementById('posts').innerHTML = '';
+  document.getElementById('room').style.display = 'none';
+  document.getElementById('adminPanel').style.display = 'none';
+  document.getElementById('login').style.display = 'block';
+  location.reload();
+}
+
+function loadAnnouncement() {
+  const announcementGun = gun.get(ANNOUNCEMENT_PATH).get('announcement');
+  announcementGun.on((data) => {
+    const display = document.getElementById('announcementDisplay');
+    if (data && data.text) {
+      display.innerHTML = `
+        <div style="color: var(--text-primary); font-size: 0.95em; line-height: 1.4;">${escapeHtml(data.text)}</div>
+        <div style="color: #666; font-size: 0.65em; margin-top: 8px;">
+          Last update: ${new Date(data.timestamp || 0).toLocaleString()} 
+          by <span style="color: var(--accent-fire);">${data.updatedBy || 'unknown'}</span>
+        </div>
+      `;
+    } else {
+      display.innerHTML = '<div style="color: #666; font-size: 0.85em;">No announcement yet.</div>';
+    }
+  });
+}
+
+function toggleEditMode() {
+  const panel = document.getElementById('editPanel');
+  const isVisible = panel.style.display === 'block';
+  if (!isVisible) {
+    gun.get(ANNOUNCEMENT_PATH).get('announcement').once((data) => {
+      document.getElementById('announcementInput').value = data?.text || '';
+    });
+  }
+  panel.style.display = isVisible ? 'none' : 'block';
+}
+
+function saveAnnouncement() {
+  if (!isAdmin) {
+    alert('Insufficient permissions: Master key required.');
+    return;
+  }
+  const newText = document.getElementById('announcementInput').value.trim();
+  if (!newText) return alert('Announcement content cannot be empty.');
+  gun.get(ANNOUNCEMENT_PATH).get('announcement').put({
+    text: newText,
+    updatedBy: CONFIG.ADMIN_NICKNAME,
+    timestamp: Date.now()
+  }, (ack) => {
+    if (ack.err) {
+      alert('Save failed: ' + ack.err);
+    } else {
+      alert('Announcement published to network!');
+      document.getElementById('editPanel').style.display = 'none';
+    }
+  });
+}
+
+function cancelEdit() {
+  document.getElementById('editPanel').style.display = 'none';
+}
+
+function setupObfs4Bridge() {
+  const bridge = prompt(
+    '请输入obfs4网桥（格式：obfs4 IP:PORT cert=xxx iat-mode=0）:' + 
+    '\n\n示例：' +
+    '\nobfs4 146.59.116.226:50845 cert=IAur+EwfAIbdC8jy+Mi9xlmh5ouL577Ya6ygJBEChwS81NiEfy3hU/IAvDZ5Ntw/w20idg iat-mode=0' +
+    '\n\n获取网桥：bridges.torproject.org'
+  );
+  
+  if (!bridge) return;
+  
+  if (!bridge.startsWith('obfs4')) {
+    alert('❌ 仅支持obfs4网桥格式');
+    return;
+  }
+  
+  try {
+    const parts = bridge.split(' ');
+    if (parts.length < 4) {
+      alert('❌ 网桥格式错误，需要包含IP、端口、cert和iat-mode');
+      return;
+    }
+    
+    localStorage.setItem('tor_bridge', bridge);
+    
+    const proxyUrl = TorManager.createBridgeUrl(bridge);
+    
+    document.getElementById('torStatus').innerHTML = 
+      `✅ obfs4网桥已配置<br>🌐 代理: ${proxyUrl.split('/')[2]}`;
+    
+    alert('✅ obfs4网桥配置成功！刷新页面后生效。');
+    
+    if (confirm('是否立即刷新以应用新配置？')) {
+      location.reload();
+    }
+  } catch (e) {
+    alert('❌ 配置失败: ' + e.message);
+  }
+}
+
+function enableTorMode() {
+  const isTorBrowser = window.navigator.userAgent.includes('Tor') || 
+                       window.location.hostname.endsWith('.onion');
+  
+  if (!isTorBrowser) {
+    const proceed = confirm(
+      '⚠️ Tor模式提示\n\n' +
+      '此模式需要在Tor浏览器中使用，或已启动本地Tor代理。\n\n' +
+      '注意：现在支持中国模式和Tor模式同时启用！\n' +
+      '这将提供更高的连接成功率。\n\n' +
+      '点击"确定"将启用Tor模式（如果不可用会自动回落）。\n' +
+      '点击"取消"返回。'
+    );
+    
+    if (!proceed) return;
+  }
+  
+  const url = new URL(window.location.href);
+  url.searchParams.set('tor', '1');
+  window.location.href = url.toString();
+}
+
+const System = {
+  db: null,
+  editor: null,
+  
+  init() {
+    console.log = console.warn = console.error = () => {};
+    this.initDB();
+    this.initEditor();
+  },
+  
+  initDB() {
+    const request = indexedDB.open('MiniOS', 1);
+    request.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('files')) {
+        db.createObjectStore('files', { keyPath: 'name' });
+      }
+    };
+    request.onsuccess = (e) => {
+      this.db = e.target.result;
+      this.loadFiles();
+    };
+  },
+  
+  initEditor() {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/loader.js';
+    script.onload = () => {
+      require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs' }});
+      require(['vs/editor/editor.main'], () => {
+        System.editor = monaco.editor.create(document.getElementById('editor-container'), {
+          value: '// MiniOS Text Editor\n// Drag files to File Manager to edit',
+          language: 'plaintext',
+          theme: 'vs-dark',
+          automaticLayout: true,
+          fontSize: 14
+        });
+      });
+    };
+    document.head.appendChild(script);
+  },
+  
+  loadFiles() {
+    if (!this.db) return;
+    const tx = this.db.transaction('files', 'readonly');
+    const req = tx.objectStore('files').getAll();
+    req.onsuccess = () => {
+      const files = req.result;
+      const list = document.getElementById('file-list');
+      list.innerHTML = files.map(f => `
+        <div class="file-item" onclick="System.openFile('${f.name}')">
+          <span>📄 ${f.name}</span>
+          <span style="margin-left: auto; color: #666;">${(f.size / 1024).toFixed(1)} KB</span>
+        </div>
+      `).join('');
+    };
+  },
+  
+  openFile(filename) {
+    const tx = this.db.transaction('files', 'readonly');
+    const req = tx.objectStore('files').get(filename);
+    req.onsuccess = () => {
+      const file = req.result;
+      if (file) {
+        const ext = filename.split('.').pop().toLowerCase();
+        const languageMap = {
+          js: 'javascript', py: 'python', html: 'html', css: 'css', json: 'json',
+          md: 'markdown', xml: 'xml', yaml: 'yaml', yml: 'yaml', sh: 'shell',
+          php: 'php', rb: 'ruby', go: 'go', java: 'java', c: 'c', cpp: 'cpp',
+          cs: 'csharp', swift: 'swift', kt: 'kotlin', rs: 'rust', lua: 'lua',
+          sql: 'sql', r: 'r', m: 'objective-c', pl: 'perl', vim: 'vim',
+          conf: 'ini', ini: 'ini', toml: 'toml', log: 'plaintext'
+        };
+        System.editor.setValue(file.content);
+        monaco.editor.setModelLanguage(System.editor.getModel(), languageMap[ext] || 'plaintext');
+        openApp('editor');
+      }
+    };
+  }
+};
+
+function openApp(id) {
+  document.querySelectorAll('.app').forEach(a => a.classList.remove('active'));
+  document.querySelectorAll('.task-icon').forEach(i => i.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+function closeApp(id) {
+  document.getElementById(id).classList.remove('active');
+  document.querySelector(`[onclick="openApp('${id}')"]`).classList.remove('active');
+}
+
+function handleDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'copy';
+  e.target.classList.add('dragover');
+}
+
+function handleDragLeave(e) {
+  e.preventDefault();
+  e.target.classList.remove('dragover');
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  e.target.classList.remove('dragover');
+  Array.from(e.dataTransfer.files).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const tx = System.db.transaction('files', 'readwrite');
+      tx.objectStore('files').put({
+        name: file.name,
+        content: event.target.result,
+        size: file.size,
+        type: file.type,
+        modified: new Date()
+      });
+      tx.oncomplete = () => System.loadFiles();
+    };
+    const textTypes = /^(text\/|application\/(json|xml)|image\/svg)/;
+    if (textTypes.test(file.type) || file.name.match(/\.(txt|js|py|html|css|json|md|xml|yml|yaml|sh|php|rb|go|java|c|cpp|cs|swift|kt|rs|lua|sql|m|pl|vim|conf|ini|toml|lock|log)$/i)) {
+      reader.readAsText(file);
+    } else {
+      reader.readAsDataURL(file);
+    }
+  });
+}
+
+function loadUrl() {
+  const url = document.getElementById('browser-input').value.trim();
+  if (!url) return;
+  const fullUrl = url.startsWith('http') ? url : `https://${url}`;
+  const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(fullUrl)}`;
+  document.getElementById('browser-frame').src = proxyUrl;
+}
+
+function shutdown() {
+  if (!confirm('⚠️ Shutdown? This will permanently erase all system data!')) return;
+  indexedDB.deleteDatabase('MiniOS');
+  localStorage.clear();
+  sessionStorage.clear();
+  document.body.innerHTML = `
+    <div style="width:100vw;height:100vh;background:#000;display:flex;align-items:center;justify-content:center;flex-direction:center;">
+      <div style="text-align:center;">
+        <div style="font-size:36px;margin-bottom:15px;">🔴</div>
+        <div style="font-size:18px;">System Shutdown</div>
+        <div style="margin-top:15px;color:#666; font-size: 0.85em;">All data erased</div>
+        <div style="margin-top:30px;"><button onclick="location.reload()" style="padding:8px 16px;background:#333;border:none;color:#fff;border-radius:4px;cursor:pointer;">Restart</button></div>
+      </div>
+    </div>
+  `;
+}
+
+function toggleSystem() {
+  document.getElementById('entropy-container').style.display = 'none';
+  document.getElementById('system-container').style.display = 'block';
+}
+
+function exitSystem() {
+  document.getElementById('system-container').style.display = 'none';
+  document.getElementById('entropy-container').style.display = 'block';
+  document.querySelectorAll('.app').forEach(a => a.classList.remove('active'));
+  document.querySelectorAll('.task-icon').forEach(i => i.classList.remove('active'));
+}
+
+window.addEventListener('error', (e) => {
+  alert('Fatal error: ' + e.message + '\nReload required');
+});
+
+window.addEventListener('unhandledrejection', (e) => {});
+
+System.init();
+</script>
+</body>
+</html>
